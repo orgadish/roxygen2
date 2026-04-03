@@ -847,6 +847,30 @@ test_that("inheritDotParams warns when source not found (#1602)", {
   expect_snapshot(. <- roc_proc_text(rd_roclet(), text))
 })
 
+test_that("inheritDotParams matches args from S3 methods not on generic when documented", {
+
+  # `utils:::edit,default` has `file` and other arguments that don't exist on
+  # the generic but are documented in the help.
+
+  expect_all_false(names(formals(utils::edit)) == "file")
+  expect_in("file", names(formals(utils:::edit.default)))
+
+  out <- roc_proc_text(
+    rd_roclet(),
+    "
+    #' Foo
+    #'
+    #' @inheritDotParams utils::edit
+    foo <- function(...) {}
+  "
+  )[[1]]
+
+  dot_param <- out$get_value("param")[["..."]]
+  expect_match(dot_param, "item{\\code{file}}", fixed = TRUE)
+})
+
+
+
 # inherit everything ------------------------------------------------------
 
 test_that("can inherit all from single function", {
