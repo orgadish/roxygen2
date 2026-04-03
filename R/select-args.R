@@ -20,6 +20,31 @@ select_args <- function(fun, select = list()) {
   stopifnot(is.list(select))
 
   args <- names(formals(fun))
+
+  # If fun is an S3 generic, add the formals from all known S3 methods
+  # so that args defined only on methods are eligible.
+  #
+  # utils::isS3stdGeneric can fail on functions with unusual bodies, so we guard
+  # it in a tryCatch.
+  fun_is_s3_generic <- tryCatch(utils::isS3stdGeneric(fun),
+                                error = function(e) FALSE)
+  if (isTRUE(fun_is_s3_generic)) {
+    fun_name <- names(fun_is_s3_generic)
+    ns <- environment(fun)
+    s3_methods <- tryCatch(
+      utils::.S3methods(fun_name, envir=ns),
+      error = function(e) character()
+    )
+    s3_args <- unlist(lapply(
+      s3_methods,
+      function(m) tryCatch(
+        names(formals(m, envir=ns)),
+        error = function(e) NULL
+      )
+    ))
+    args <- union(args, s3_args)
+  }
+
   args <- args[args != "..."]
 
   if (length(select) == 0) {

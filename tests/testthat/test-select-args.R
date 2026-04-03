@@ -27,3 +27,11 @@ test_that("can alternative exclusion and inclusion", {
   expect_equal(select_args_text(f, "-z z"), c("x", "y", "z"))
   expect_equal(select_args_text(f, "z -z"), character())
 })
+
+test_that("select_args includes formals from S3 methods not on generic", {
+  # roclet_output.roclet_rd has an is_first argument specific not on the generic.
+  expect_all_false(names(formals(roclet_output)) == "is_first")
+  expect_in("is_first", names(formals(roclet_output.roclet_rd)))
+
+  expect_contains(select_args(roclet_output), "is_first")
+})
